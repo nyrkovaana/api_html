@@ -4,7 +4,7 @@ from requests import get, put
 import urllib.parse
 import json
 
-YANDEX_TOKEN = "y0_AgAAAAAjAgqUAADLWwAAAAEdJgICAACVo7nXuyRAxLfEJ8GH2GDlDV8h4w"  # Ваш OAuth-токен
+YANDEX_TOKEN = ""
 
 def run(handler_class=BaseHTTPRequestHandler):
     server_address = ('', 8000)
@@ -18,17 +18,14 @@ def run(handler_class=BaseHTTPRequestHandler):
 
 class HttpGetHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # Проверка, существует ли файл на Яндекс.Диске
         def is_file_uploaded(fname):
             ya_path = f"Backup/{urllib.parse.quote(fname)}"
             resp = get(f"https://cloud-api.yandex.net/v1/disk/resources?path={ya_path}",
                        headers={"Authorization": f"OAuth {YANDEX_TOKEN}"})
-            return resp.status_code == 200  # Если файл существует, вернётся 200
+            return resp.status_code == 200
 
-        # Генерация HTML для файлов
         def fname2html(fname):
             if is_file_uploaded(fname):
-                # Фон зелёный для загруженных файлов
                 return f"""
                     <li style="background-color: rgba(0, 200, 0, 0.25);"
                         onclick="fetch('/upload', {{'method': 'POST', 'body': '{fname}'}})">
@@ -36,14 +33,12 @@ class HttpGetHandler(BaseHTTPRequestHandler):
                     </li>
                 """
             else:
-                # Обычный фон для незагруженных файлов
                 return f"""
                     <li onclick="fetch('/upload', {{'method': 'POST', 'body': '{fname}'}})">
                         {fname}
                     </li>
                 """
 
-        # Генерируем HTML
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
@@ -61,13 +56,11 @@ class HttpGetHandler(BaseHTTPRequestHandler):
         """.encode())
 
     def do_POST(self):
-        # Получение имени файла из POST-запроса
         content_len = int(self.headers.get('Content-Length'))
         fname = self.rfile.read(content_len).decode("utf-8")
         local_path = f"pdfs/{fname}"
         ya_path = f"Backup/{urllib.parse.quote(fname)}"
 
-        # Загружаем файл на Яндекс.Диск
         resp = get(f"https://cloud-api.yandex.net/v1/disk/resources/upload?path={ya_path}",
                    headers={"Authorization": f"OAuth {YANDEX_TOKEN}"})
         if resp.status_code != 200:
@@ -82,7 +75,6 @@ class HttpGetHandler(BaseHTTPRequestHandler):
         if upload_resp.status_code == 201:
             print(f"File {fname} uploaded successfully.")
 
-        # Отправка ответа клиенту
         self.send_response(200)
         self.end_headers()
 
